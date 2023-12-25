@@ -3,8 +3,6 @@ import h5py
 import torch
 from scipy.sparse import csc_matrix
 
-
-
 def sorted_v(v):
     unique_values = np.unique(v)
     sorted_indices = [np.where(v == k)[0] for k in unique_values]
@@ -62,20 +60,19 @@ def load_grid_data():
         else:
             bool_gc[i] = True
 
-    f = h5py.File("big_files/Mouse105018_D20230802_T145627_1_5431_0.1_mouse.jld2", "r")
-    f.keys()
+    f = h5py.File("big_files/Mouse105018_D20230802_T145627_1_5431_0.1_mouse.jld2", "r")    
+    txyz_big = torch.tensor(np.array(f['single_stored_object']))
     
-    txyz = np.array(f['single_stored_object'])
+    f = h5py.File("big_files/Mouse105018_D20230802_T145627_1_5431_0.01_mouse.jld2", "r")    
+    txyz = torch.tensor(np.array(f['single_stored_object']))
     
-    f = h5py.File("sparse_matrices/Mouse105018_D20230802_T145627_big_0.1_hz_st_1_et_5431.jld", "r")
-    f.keys()
-    
+    f = h5py.File("sparse_matrices/Mouse105018_D20230802_T145627_big_0.1_hz_st_1_et_5431.jld", "r")    
     data = f['Mouse105018_big'][()]
     
     column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
     indices=f[data[3]][:]-1 ## correct indexing
     values =f[data[4]][:]
-    big_marix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[bool_gc,:]).to_sparse()
+    big_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[bool_gc,:]).to_sparse()
     
     f = h5py.File("sparse_matrices/Mouse105018_D20230802_T145627_bin_0.01_hz_st_1_et_5431.jld", "r")
     f.keys()
@@ -85,7 +82,53 @@ def load_grid_data():
     column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
     indices=f[data[3]][:]-1 ## correct indexing
     values =f[data[4]][:]
-    bin_marix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[bool_gc,:]).to_sparse()
+    bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[bool_gc,:]).to_sparse()
     
         
-    return bin_matrix, big_matrix, txyz
+    return bin_matrix, big_matrix, txyz, txyz_big
+
+
+
+def load_lec_data():
+
+    """
+    Here we choose times we are interested in
+    
+    #1,  sleep_box_1,        start=76,   end=5890    
+    #2,  sleep_box_1,        start=6377, end=6682    
+    #3,  sequence_task_1,    start=6696, end=6987    
+    #4,  sleep_box_1,        start=7030, end=7332    
+    #5,  sequence_task_1,    start=7347, end=7604    
+    #6,  sleep_box_1,        start=7648, end=7957    
+    #7,  sequence_task_1,    start=7969, end=8224    
+    #8,  sleep_box_1,        start=8260, end=8577    
+    """
+    
+    f = h5py.File("./sparse_matrices_lec/elm_2_bin_0.01_hz_st_0_et_8578.jld", "r")
+    f.keys()
+    data = f["elm_2_bin"][()]
+    column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
+    indices=f[data[3]][:]-1 ## correct indexing
+    values =f[data[4]][:]
+    bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
+
+    f = h5py.File("./sparse_matrices_lec/elm_2_bin_HUGE0.01_hz_st_0_et_8578.jld", "r")
+    data = f["elm_2_bin"][()]
+    column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
+    indices=f[data[3]][:]-1 ## correct indexing
+    values =f[data[4]][:]
+    big_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
+
+    f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_big_0.1_hz_st_0_et_8578.jld", "r")
+    data = f["elm_2_bin"][()]
+    txyz_big = torch.tensor(data)
+
+    f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_bin_0.01_hz_st_0_et_8578.jld", "r")
+    data = f["elm_2_bin"][()]
+    txyz = torch.tensor(data)
+    bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
+    big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
+    txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
+    txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
+
+    return bin_matrix, big_matrix, txyz, txyz_big
