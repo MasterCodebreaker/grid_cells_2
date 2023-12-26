@@ -6,10 +6,13 @@ class MLP(torch.nn.Module):
     def __init__(self,dims = [64,28,3]):
         super(MLP,self).__init__()
         self.layers = []
-        for i in range(len(dims)-1):
+        for i in range(len(dims)-2):
             self.layers.append(nn.Dropout(0.1))
-            self.layers.append(nn.Linear(dims[i], dims[i+1]))
+            self.layers.append(nn.Linear(dims[i], dims[i+1], bias = False))
             self.layers.append(nn.ReLU())
+        self.layers.append(nn.Dropout(0.1))
+        self.layers.append(nn.Linear(dims[-2], dims[-1]))
+        #self.layers.append(nn.ReLU())
             
         self.model = nn.Sequential(*self.layers
         )

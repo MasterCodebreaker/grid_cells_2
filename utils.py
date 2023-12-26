@@ -15,7 +15,7 @@ def cross_corr_dist(sspikes, n_lencor = 10, numcor=-1):
     Compute cross correlation across 'lencorr' time lags between columns of 'sspikes'
     """
 
-    sspikes = sspikes.T.copy()
+    sspikes = sspikes.T#.copy()
     lenspk, num_neurons = sspikes.shape
     crosscorrs = np.zeros((num_neurons, num_neurons, n_lencor))
     spk_tmp = np.zeros((lenspk, n_lencor))
@@ -27,8 +27,7 @@ def cross_corr_dist(sspikes, n_lencor = 10, numcor=-1):
         
         crosscorrs[i, :, :] = np.dot(spk_tmp.T, sspikes).T
     
-    return crosscorrs
-
+    return cross_cor(crosscorrs)
 
 def cross_cor(crosscorrs):
     _, num_neurons, lencorr = crosscorrs.shape
@@ -37,7 +36,7 @@ def cross_cor(crosscorrs):
     for i1 in range(num_neurons):
         for j1 in range(i1 + 1, num_neurons):
             a = crosscorrs[i1, j1, :]
-            b = crosscorrs[j1, i1, 60:80]
+            b = crosscorrs[j1, i1, :]
             c = np.concatenate((a, b))
             
             min_c = np.min(c)
@@ -89,46 +88,76 @@ def load_grid_data():
 
 
 
-def load_lec_data():
-
-    """
-    Here we choose times we are interested in
+def load_lec_data(rat):
+    if rat == "elm":
+        """
+        Here we choose times we are interested in
+        
+        #1,  sleep_box_1,        start=76,   end=5890    
+        #2,  sleep_box_1,        start=6377, end=6682    
+        #3,  sequence_task_1,    start=6696, end=6987    
+        #4,  sleep_box_1,        start=7030, end=7332    
+        #5,  sequence_task_1,    start=7347, end=7604    
+        #6,  sleep_box_1,        start=7648, end=7957    
+        #7,  sequence_task_1,    start=7969, end=8224    
+        #8,  sleep_box_1,        start=8260, end=8577    
+        """
+        
+        f = h5py.File("./sparse_matrices_lec/elm_2_bin_0.01_hz_st_0_et_8578.jld", "r")
+        f.keys()
+        data = f["elm_2_bin"][()]
+        column_ptr=f[data[2]][:]-1 ## corr ect indexing from julia (starts at 1)
+        indices=f[data[3]][:]-1 ## correct indexing
+        values =f[data[4]][:]
+        bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
     
-    #1,  sleep_box_1,        start=76,   end=5890    
-    #2,  sleep_box_1,        start=6377, end=6682    
-    #3,  sequence_task_1,    start=6696, end=6987    
-    #4,  sleep_box_1,        start=7030, end=7332    
-    #5,  sequence_task_1,    start=7347, end=7604    
-    #6,  sleep_box_1,        start=7648, end=7957    
-    #7,  sequence_task_1,    start=7969, end=8224    
-    #8,  sleep_box_1,        start=8260, end=8577    
-    """
+        f = h5py.File("./sparse_matrices_lec/elm_2_bin_HUGE0.01_hz_st_0_et_8578.jld", "r")
+        data = f["elm_2_bin"][()]
+        column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
+        indices=f[data[3]][:]-1 ## correct indexing
+        values =f[data[4]][:]
+        big_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
     
-    f = h5py.File("./sparse_matrices_lec/elm_2_bin_0.01_hz_st_0_et_8578.jld", "r")
-    f.keys()
-    data = f["elm_2_bin"][()]
-    column_ptr=f[data[2]][:]-1 ## corr ect indexing from julia (starts at 1)
-    indices=f[data[3]][:]-1 ## correct indexing
-    values =f[data[4]][:]
-    bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
-
-    f = h5py.File("./sparse_matrices_lec/elm_2_bin_HUGE0.01_hz_st_0_et_8578.jld", "r")
-    data = f["elm_2_bin"][()]
-    column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
-    indices=f[data[3]][:]-1 ## correct indexing
-    values =f[data[4]][:]
-    big_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
-
-    f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_big_0.1_hz_st_0_et_8578.jld", "r")
-    data = f["elm_2_bin"][()]
-    txyz_big = torch.tensor(data)
-
-    f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_bin_0.01_hz_st_0_et_8578.jld", "r")
-    data = f["elm_2_bin"][()]
-    txyz = torch.tensor(data)
-    bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
-    big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
-    txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
-    txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
+        f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_big_0.1_hz_st_0_et_8578.jld", "r")
+        data = f["elm_2_bin"][()]
+        txyz_big = torch.tensor(data)
+    
+        f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_bin_0.01_hz_st_0_et_8578.jld", "r")
+        data = f["elm_2_bin"][()]
+        txyz = torch.tensor(data)
+        bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
+        big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
+        txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
+        txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
+        
+    elif rat == "hemlock_2":
+        
+        f = h5py.File("./sparse_matrices_lec/hemlock_2_bin_0.01_hz_st_0_et_1894.jld", "r")
+        f.keys()
+        data = f["hemlock_2_bin"][()]
+        column_ptr=f[data[2]][:]-1 ## corr ect indexing from julia (starts at 1)
+        indices=f[data[3]][:]-1 ## correct indexing
+        values =f[data[4]][:]
+        bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
+    
+        f = h5py.File("./sparse_matrices_lec/hemlock_2_bin_HUGE0.01_hz_st_0_et_1894.jld", "r")
+        data = f["hemlock_2_bin"][()]
+        column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
+        indices=f[data[3]][:]-1 ## correct indexing
+        values =f[data[4]][:]
+        big_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
+    
+        f = h5py.File("./sparse_matrices_lec/hemlock_2_time_loc_big_0.1_hz_st_0_et_1894.jld", "r")
+        data = f["hemlock_2_bin"][()]
+        txyz_big = torch.tensor(data)
+    
+        f = h5py.File("./sparse_matrices_lec/hemlock_2_time_loc_bin_0.01_hz_st_0_et_1894.jld", "r")
+        data = f["hemlock_2_bin"][()]
+        txyz = torch.tensor(data)
+        
+        bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
+        big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
+        txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
+        txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
 
     return bin_matrix, big_matrix, txyz, txyz_big
