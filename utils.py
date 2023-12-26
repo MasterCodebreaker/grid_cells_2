@@ -107,7 +107,7 @@ def load_lec_data():
     f = h5py.File("./sparse_matrices_lec/elm_2_bin_0.01_hz_st_0_et_8578.jld", "r")
     f.keys()
     data = f["elm_2_bin"][()]
-    column_ptr=f[data[2]][:]-1 ## correct indexing from julia (starts at 1)
+    column_ptr=f[data[2]][:]-1 ## corr ect indexing from julia (starts at 1)
     indices=f[data[3]][:]-1 ## correct indexing
     values =f[data[4]][:]
     bin_matrix = torch.tensor(csc_matrix((values,indices,column_ptr), shape=(data[0],data[1])).toarray()[:,:]).to_sparse()
