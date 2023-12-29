@@ -3,31 +3,34 @@ import h5py
 import torch
 from scipy.sparse import csc_matrix
 
+
+
 def sorted_v(v):
     unique_values = np.unique(v)
     sorted_indices = [np.where(v == k)[0] for k in unique_values]
     flattened_indices = np.concatenate(sorted_indices)
     return flattened_indices
 
-def cross_corr_dist(sspikes, n_lencor = 10, numcor=-1):
+def cross_corr_dist(sspikes, n_lencor = 10):
     
     """
     Compute cross correlation across 'lencorr' time lags between columns of 'sspikes'
     """
-
+    sspikes = np.sqrt(sspikes)
     sspikes = sspikes.T#.copy()
     lenspk, num_neurons = sspikes.shape
     crosscorrs = np.zeros((num_neurons, num_neurons, n_lencor))
-    spk_tmp = np.zeros((lenspk, n_lencor))
+    
 
     for i in range(num_neurons):
+        spk_tmp = np.zeros((lenspk, n_lencor))
         spk_tmp0 = np.concatenate((sspikes[:, i], np.zeros(n_lencor)), axis=0)
-        for ind, j in enumerate(np.arange(0,n_lencor)):
-            spk_tmp[:, ind] = np.roll(spk_tmp0, j)[:lenspk]
-        
+        for j in range(n_lencor):
+            spk_tmp[:, j] = np.roll(spk_tmp0, j)[:lenspk]
+            #print(np.roll(spk_tmp0, j)[:lenspk])
         crosscorrs[i, :, :] = np.dot(spk_tmp.T, sspikes).T
     
-    return cross_cor(crosscorrs)
+    return crosscorrs
 
 def cross_cor(crosscorrs):
     _, num_neurons, lencorr = crosscorrs.shape
@@ -41,11 +44,11 @@ def cross_cor(crosscorrs):
             
             min_c = np.min(c)
             max_c = np.max(c)
-            if abs(max_c) > 10e-5:
+            if abs(max_c) > 10e-3:
                 crosscorrs1[i1, j1] = (min_c / max_c) ** 2
                 crosscorrs1[j1, i1] = crosscorrs1[i1, j1]
 
-    crosscorrs1[np.isnan(crosscorrs1)] = 0
+    #crosscorrs1[np.isnan(crosscorrs1)] = 0
     return crosscorrs1
 
 def load_grid_data():
