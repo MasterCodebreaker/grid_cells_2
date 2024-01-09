@@ -2,7 +2,54 @@ import numpy as np
 import h5py
 import torch
 from scipy.sparse import csc_matrix
+import matplotlib.pyplot as plt
+import scipy
 
+
+def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
+    for q in range(len(labels)):
+        cell = T[q,:]
+        
+        n_bins_y = n_bins_x*3
+        
+        loc_matrix = np.zeros((n_bins_x,n_bins_y))
+        time_in_bin = np.ones((n_bins_x,n_bins_y))
+        
+        active = cell > 0
+        
+        x = txyz[1,:].detach().numpy()[active]
+        y = txyz[2,:].detach().numpy()[active]
+        cell = cell[active]
+        
+        bins_x = np.linspace(np.min(x), np.max(x)+0.0001, n_bins_x)
+        bins_y = np.linspace(np.min(y), np.max(y)+0.0001, n_bins_y)
+        
+        for i in range(cell.shape[0]):
+            x_loc = np.inf
+            y_loc = np.inf
+            for j in range(bins_x.shape[0]):
+                if bins_x[j] > x[i]:
+                    x_loc = j-1
+                    break
+            for j in range(bins_y.shape[0]):
+                if bins_y[j] > y[i] :
+                    y_loc = j-1
+                    break
+            loc_matrix[x_loc, y_loc] += cell[i]
+            time_in_bin[x_loc, y_loc] += 1
+        
+        loc_map = loc_matrix/time_in_bin
+        loc_map = scipy.ndimage.gaussian_filter(loc_map, sigma = (3,3))
+
+        fig = plt.figure(figsize=(12, 6))
+        plt.imshow(loc_map, aspect='auto')
+        #plt.colorbar() 
+        plt.savefig(loc + f"{labels[q]}_{q}.png")
+        plt.close()
+
+        
+        
+        
 
 
 def sorted_v(v):

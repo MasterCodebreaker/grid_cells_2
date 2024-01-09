@@ -80,7 +80,7 @@ def _crossdot(x, y, lx, l):
 
 
 
-def cluster_cor(x,n_lencor = 30,n_clusters = 6, smaller = False):
+def cluster_cor(x,n_lencor = 30,n_clusters = 6, smaller = False, metric = "euclidean", linkage = "average"):
     
     crosscorrs = get_cross_corr(x, lencorr = n_lencor)
     
@@ -107,7 +107,7 @@ def cluster_cor(x,n_lencor = 30,n_clusters = 6, smaller = False):
     np.fill_diagonal(crosscorrs, 0, wrap=False)
     #return crosscorrs
     
-    hierarchical_cluster = AgglomerativeClustering(n_clusters=n_clusters, metric='cosine', linkage='average')
+    hierarchical_cluster = AgglomerativeClustering(n_clusters=n_clusters, metric=metric, linkage=linkage)
     labels = hierarchical_cluster.fit_predict(crosscorrs)
     
     [sum(labels == i) for i in np.unique(np.sort(labels))]
