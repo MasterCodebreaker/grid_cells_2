@@ -4,11 +4,36 @@ from sklearn.cluster import AgglomerativeClustering
 import matplotlib.pyplot as plt
 from utils import sorted_v
 from scipy.spatial.distance import squareform
-
+from scipy.linalg import hankel
+from scipy.cluster.hierarchy import dendrogram
 
 from scipy.cluster.hierarchy import ClusterWarning
 from warnings import simplefilter
 simplefilter("ignore", ClusterWarning)
+
+
+
+def plot_dendrogram(model, **kwargs):
+    # Create linkage matrix and then plot the dendrogram
+
+    # create the counts of samples under each node
+    counts = np.zeros(model.children_.shape[0])
+    n_samples = len(model.labels_)
+    for i, merge in enumerate(model.children_):
+        current_count = 0
+        for child_idx in merge:
+            if child_idx < n_samples:
+                current_count += 1  # leaf node
+            else:
+                current_count += counts[child_idx - n_samples]
+        counts[i] = current_count
+
+    linkage_matrix = np.column_stack(
+        [model.children_, model.distances_, counts]
+    ).astype(float)
+
+    # Plot the corresponding dendrogram
+    dendrogram(linkage_matrix, **kwargs)
 
 def check_lags(lx, lags):
     if max(lags) >= lx:
@@ -39,11 +64,14 @@ def get_cross_corr(sspikes, lencorr = 30, bNorm = False):
     Compute cross correlation lagged across 'lencorr' time bins between columns of 'sspikes' 
     Normalize if necessary    
     """
+    sspikes = np.sqrt(sspikes)
     lenspk,num_neurons = np.shape(sspikes)
     crosscorrs = np.zeros((num_neurons, num_neurons, lencorr))
     for i in range(num_neurons):
-        spk_tmp0 = np.concatenate((sspikes[:,i].copy(), np.zeros(lencorr)))
-        spk_tmp = np.array([np.roll(spk_tmp0, t1)[:lenspk] for t1 in range(lencorr)])
+        #spk_tmp0 = np.concatenate((sspikes[:,i].copy(), np.zeros(lencorr)))
+        #spk_tmp = np.array([np.roll(spk_tmp0, t1)[:lenspk] for t1 in range(lencorr)])
+        spk_tmp = hankel(sspikes[:,i],np.full(lencorr,0)).T
+
         crosscorrs[i,:,:] = np.dot(spk_tmp, sspikes).T   
     if bNorm:
         norm_spk = np.ones((num_neurons))
@@ -78,19 +106,26 @@ def _crossdot(x, y, lx, l):
     else:
         return np.dot(x[1-l:], y[:lx+l])
 
+def unique(list1):
+ 
+    # insert the list to the set
+    list_set = set(list1)
+    # convert the set to the list
+    unique_list = (list(list_set))
+    return unique_list
 
-
-def cluster_cor(x,n_lencor = 30,n_clusters = 6, smaller = False, metric = "euclidean", linkage = "average"):
+def cluster_cor(x,n_lencor = 30, n_clusters = 6, smaller = True, metric = "euclidean", linkage = "average"):
     
     crosscorrs = get_cross_corr(x, lencorr = n_lencor)
     
     
     crosscorrs = get_xcorr_dist(crosscorrs)
+    fig = plt.figure(figsize=(8, 8))
     plt.imshow(crosscorrs,interpolation='nearest', aspect='auto')
     plt.colorbar() 
     plt.show()
 
-    y = np.array([False])
+    y = np.array([True for _ in range(x.shape[1])])
     if smaller:
         y = np.sum(crosscorrs != False,1) != 0
         crosscorrs = crosscorrs[y,:][:,y]
@@ -107,14 +142,28 @@ def cluster_cor(x,n_lencor = 30,n_clusters = 6, smaller = False, metric = "eucli
     np.fill_diagonal(crosscorrs, 0, wrap=False)
     #return crosscorrs
     
-    hierarchical_cluster = AgglomerativeClustering(n_clusters=n_clusters, metric=metric, linkage=linkage)
-    labels = hierarchical_cluster.fit_predict(crosscorrs)
+    #hierarchical_cluster = AgglomerativeClustering(n_clusters=None, metric=metric, linkage=linkage)
+    model = AgglomerativeClustering(distance_threshold=n_clusters, n_clusters = None, metric = metric, linkage = linkage)
+    model = model.fit(crosscorrs)
     
-    [sum(labels == i) for i in np.unique(np.sort(labels))]
+    
+    labels = model.labels_
+    fig = plt.figure(figsize=(8, 8))
+    plot_dendrogram(model)#, truncate_mode="level", p=3)
+    plt.show()
+
+    a = [(l,sum(labels == l)) for l in np.sort(np.unique(labels))]
+    print(a)
+    threshold = 30
+    for i in np.sort(np.unique(labels)):
+        if sum(labels== i ) <threshold:
+            labels[labels == i] = 99
+    a = [(l,sum(labels == l)) for l in np.sort(np.unique(labels))]
+    print(a)
     
     v = sorted_v(labels)
     
-    
+    fig = plt.figure(figsize=(8, 8))
     plt.imshow(crosscorrs[v,:][:,v], aspect='auto')
     plt.colorbar() 
     plt.show()

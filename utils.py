@@ -44,7 +44,7 @@ def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
         fig = plt.figure(figsize=(12, 6))
         plt.imshow(loc_map, aspect='auto')
         #plt.colorbar() 
-        plt.savefig(loc + f"{labels[q]}_{q}.png")
+        plt.savefig(loc + f"{labels[q]}_{q}.png",  bbox_inches='tight')
         plt.close()
 
         
@@ -175,10 +175,15 @@ def load_lec_data(rat):
         f = h5py.File("./sparse_matrices_lec/elm_2_time_loc_bin_0.01_hz_st_0_et_8578.jld", "r")
         data = f["elm_2_bin"][()]
         txyz = torch.tensor(data)
-        bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
-        big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
+
+        bin_matrix = (bin_matrix.to_dense()).to_sparse()
+        big_matrix = (big_matrix.to_dense()).to_sparse()
         txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
         txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
+        #bin_matrix = (bin_matrix.to_dense()[:, torch.isnan(txyz[1,:]) == False]).to_sparse()
+        #big_matrix = (big_matrix.to_dense()[:, torch.isnan(txyz_big[1,:]) == False]).to_sparse()
+        #txyz_big = txyz_big[:, torch.isnan(txyz_big[1,:]) == False]
+        #txyz = txyz[:, torch.isnan(txyz[1,:]) == False]
         
     elif rat == "hemlock_2":
         
