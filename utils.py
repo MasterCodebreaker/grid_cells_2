@@ -4,6 +4,21 @@ import torch
 from scipy.sparse import csc_matrix
 import matplotlib.pyplot as plt
 import scipy
+from scipy.sparse.linalg import lsmr
+
+"""
+
+#finding the 2000 most active time points
+s = np.argsort(np.sum(Y,0))[::-1][:2000]
+s = np.sort(s)
+
+Y = Y[:,s]
+loc = loc[:,s]
+
+"""
+
+
+
 
 """
 
