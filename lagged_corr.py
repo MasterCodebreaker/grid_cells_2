@@ -116,7 +116,7 @@ def unique(list1):
 
 def cluster_cor(x,n_lencor = 30, n_clusters = 6, smaller = True, metric = "euclidean", linkage = "average"):
     
-    crosscorrs = get_cross_corr(x, lencorr = n_lencor)
+    crosscorrs = get_cross_corr(x.T, lencorr = n_lencor)
     
     
     crosscorrs = get_xcorr_dist(crosscorrs)

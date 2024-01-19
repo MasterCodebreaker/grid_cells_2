@@ -5,6 +5,71 @@ from scipy.sparse import csc_matrix
 import matplotlib.pyplot as plt
 import scipy
 
+"""
+
+diagrams = persistence['dgms']
+cocycles = persistence['cocycles']
+D = persistence['dperm2all']
+dgm1 = diagrams[1]
+plot_diagrams(diagrams, show = False)
+
+# Label points in PD according to length
+
+labels = [str(i) for i in range(dgm1.shape[0])]
+
+for j,i in enumerate(np.argsort(dgm1[:,1] - dgm1[:,0])):
+    plt.annotate(str(len(dgm1) -j), (dgm1[i,0], dgm1[i,1]))
+plt.show()
+
+
+#print("Choose point: ")
+#idx = int(input())
+
+idx = 1
+idx = np.argsort(dgm1[:,1] - dgm1[:,0])[::-1][idx - 1]
+
+
+plt.figure()
+plt.title("Max 1D birth = %.3g, death = %.3g"%(dgm1[idx, 0], dgm1[idx, 1]))
+plot_diagrams(diagrams, show = False)
+plt.scatter(dgm1[idx, 0], dgm1[idx, 1], 20, 'red', 'x') 
+plt.show()
+
+"""
+
+def get_coords(cocycle, threshold, num_sampled, dists, coeff):
+    zint = np.where(coeff - cocycle[:, 2] < cocycle[:, 2])
+    cocycle[zint, 2] = cocycle[zint, 2] - coeff
+    d = np.zeros((num_sampled, num_sampled))
+    d[np.tril_indices(num_sampled)] = np.NaN
+    d[cocycle[:, 1], cocycle[:, 0]] = cocycle[:, 2]
+    d[dists > threshold] = np.NaN
+    d[dists == 0] = np.NaN
+    edges = np.where(~np.isnan(d))
+    verts = np.array(np.unique(edges))
+    num_edges = np.shape(edges)[1]
+    num_verts = np.size(verts)
+    values = d[edges]
+    A = np.zeros((num_edges, num_verts), dtype=int)
+    v1 = np.zeros((num_edges, 2), dtype=int)
+    v2 = np.zeros((num_edges, 2), dtype=int)
+    for i in range(num_edges):
+        v1[i, :] = [i, int(np.where(verts == edges[0][i])[0][0])]
+        v2[i, :] = [i, int(np.where(verts == edges[1][i])[0][0])]
+
+    A[v1[:, 0], v1[:, 1]] = -1
+    A[v2[:, 0], v2[:, 1]] = 1
+  
+    L = np.ones((num_edges,))
+    Aw = A * np.sqrt(L[:, np.newaxis])
+    Bw = values * np.sqrt(L)
+    #print(Aw.shape)
+    #print(Bw.shape)
+    f = lsmr(Aw, Bw)[0]%1
+    print(f.shape)
+    return f, verts
+
+
 
 def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
     for q in range(len(labels)):

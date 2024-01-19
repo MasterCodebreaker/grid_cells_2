@@ -1,28 +1,42 @@
 import torch.nn as nn
 import torch
+import tqdm
 
-def train(model, loader, optimizer, criterion):
+def train(model, train_loader,val_loader , optimizer, criterion, epochs, device = "cpu"):
     model.train()
+    model.to(device)
+    
     train_loss = []
+    val_loss = []
+    with tqdm.tqdm(range(epochs), unit="Epoch") as lossepoch:
+        lossepoch.set_description(f"Train loss = ..., Val loss = ...")
+        for epoch in lossepoch:
+            l = 0
+            for data in train_loader:  # Iterate in batches over the training dataset.
+                 out = model(data[0].to(device))
+                 loss_fl = criterion(out, data[0].to(device))
+                 loss_fl.backward()  # Derive gradients.
+                 l += loss_fl.cpu().detach().numpy()
+                 optimizer.step()  # Update parameters based on gradients.
+                 optimizer.zero_grad()  # Clear gradients.
+            l = l/len(train_loader)
+            train_loss.append(l)
+            v = val(model, val_loader, optimizer, criterion, device)
+            val_loss.append(v)
+            lossepoch.set_description(f"Train loss = {l}, Val loss = {v}")
+    
+    return train_loss, val_loss
 
-    for data in loader:  # Iterate in batches over the training dataset.
-         out = model(data[0])
-        
-         loss_fl = criterion(out, data[1])
-         loss_fl.backward()  # Derive gradients.
-         optimizer.step()  # Update parameters based on gradients.
-         optimizer.zero_grad()  # Clear gradients.
-         train_loss.append(loss_fl)
-    return float(torch.mean(torch.tensor([float(i.detach().numpy()) for i in train_loss])).detach())/len(loader)
-
-def val(model, loader, optimizer, criterion):
+def val(model, loader, optimizer, criterion, device):
      model.eval()
-     val_loss = []
+     model.to(device)
+     l = 0
      for data in loader:  
         
-         out = model(data[0]) 
-         loss_fl = criterion(out, data[1])
-         val_loss.append(loss_fl)
-     return float(torch.mean(torch.tensor([float(i.detach().numpy()) for i in val_loss])).detach())/len(loader)  # Derive ratio of correct predictions.
+         out = model(data[0].to(device)) 
+         loss_fl = criterion(out, data[0].to(device))
+         l += loss_fl.cpu().detach().numpy()
+    
+     return l/len(loader)
 
 
