@@ -5,6 +5,8 @@ from scipy.sparse import csc_matrix
 import matplotlib.pyplot as plt
 import scipy
 from scipy.sparse.linalg import lsmr
+import copy
+from sklearn.neighbors import NearestNeighbors
 
 """
 
@@ -52,6 +54,17 @@ plt.show()
 
 """
 
+def interpolate(coords1, txyz, mmm, loc, n_angles = 2, n_neighbors = 10):
+    all_cord = np.empty((n_angles, txyz.shape[1]))
+    X = copy.deepcopy(loc[1:,:])
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='auto').fit(X.T)
+    for t in range(txyz.shape[1]):
+        x = txyz[1:,[t]].T
+        dist, indices = nbrs.kneighbors(x)
+        v = np.mean(coords1[:,indices], axis = 2)[:,0]
+        all_cord[:,t] = v
+    return all_cord
+
 def get_coords(cocycle, threshold, num_sampled, dists, coeff):
     zint = np.where(coeff - cocycle[:, 2] < cocycle[:, 2])
     cocycle[zint, 2] = cocycle[zint, 2] - coeff
@@ -85,6 +98,21 @@ def get_coords(cocycle, threshold, num_sampled, dists, coeff):
     return f, verts
 
 
+def tuning_curves(M, encoding_2, channel = 0, do = "grid", x_lim = (-1,1)):
+    enc = encoding_2[:,channel]
+    for i in range(M.shape[0]):
+        x = encoding_2[:,0][(M[i,:] > np.mean(M[i,:]) )]
+        
+        # plot:
+        fig, ax = plt.subplots()
+        
+        ax.hist(x, bins=25, edgecolor="white")
+        
+        ax.set(xlim=(x_lim[0], x_lim[1]))#, xticks=np.arange(1, 8),)
+               #ylim=(0, 1), yticks=np.linspace(0, 56, 9))
+        plt.savefig("./tuning_curves/" +do+ f"/channel_{channel}/{i}.png",  bbox_inches='tight')
+        #plt.show()
+        plt.close()
 
 def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
     for q in range(len(labels)):

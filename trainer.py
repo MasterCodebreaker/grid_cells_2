@@ -9,6 +9,7 @@ def train(model, train_loader,val_loader , optimizer, criterion, epochs, device 
     train_loss = []
     val_loss = []
     with tqdm.tqdm(range(epochs), unit="Epoch") as lossepoch:
+        optimizer.zero_grad()
         lossepoch.set_description(f"Train loss = ..., Val loss = ...")
         for epoch in lossepoch:
             l = 0
