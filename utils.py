@@ -114,11 +114,13 @@ def tuning_curves(M, encoding_2, channel = 0, do = "grid", x_lim = (-1,1)):
         #plt.show()
         plt.close()
 
-def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
+def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20, square = False):
     for q in range(len(labels)):
         cell = T[q,:]
         
         n_bins_y = n_bins_x*3
+        if square:
+            n_bins_y = n_bins_x
         
         loc_matrix = np.zeros((n_bins_x,n_bins_y))
         time_in_bin = np.ones((n_bins_x,n_bins_y))
@@ -147,11 +149,15 @@ def lok_spike(T, labels, txyz ,loc = "./loc_spike/grid/1/", n_bins_x = 20):
             time_in_bin[x_loc, y_loc] += 1
         
         loc_map = loc_matrix/time_in_bin
-        loc_map = scipy.ndimage.gaussian_filter(loc_map, sigma = (3,3))
-
-        fig = plt.figure(figsize=(12, 6))
+        loc_map = scipy.ndimage.gaussian_filter(loc_map, sigma = (1,1))
+        
+        
+        if square:
+            fig = plt.figure(figsize=(10, 10))
+        else:
+            fig = plt.figure(figsize=(12, 6))
         plt.imshow(loc_map, aspect='auto')
-        #plt.colorbar() 
+        plt.colorbar() 
         plt.savefig(loc + f"{labels[q]}_{q}.png",  bbox_inches='tight')
         plt.close()
 
