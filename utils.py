@@ -26,7 +26,7 @@ loc = loc[:,s]
 
 diagrams = persistence['dgms']
 cocycles = persistence['cocycles']
-D = persistence['dperm2all']
+D = persistence['dperm2allxr']
 dgm1 = diagrams[1]
 plot_diagrams(diagrams, show = False)
 
